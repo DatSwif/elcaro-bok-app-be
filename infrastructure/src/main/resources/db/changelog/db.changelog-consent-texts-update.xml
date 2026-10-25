@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="update-consent-descriptions-to-full" author="elcaro">
+        <sql>
+            UPDATE consent_type_translations
+            SET description = 'Wyrażam zgodę na otrzymywanie od ELCARO Sp. z o.o. treści marketingowych obejmujących informacje o usługach, produktach, programach i promocjach Spółki.'
+            WHERE language_code = 'pl' AND code = 'MARKETING';
+
+            UPDATE consent_type_translations
+            SET description = 'Wyrażam zgodę na używanie telekomunikacyjnych urządzeń końcowych i automatycznych systemów wywołujących dla celów marketingu bezpośredniego przez ELCARO Sp. z o.o.'
+            WHERE language_code = 'pl' AND code = 'PHONE_CONTACT';
+
+            UPDATE consent_type_translations
+            SET description = 'Wyrażam zgodę na otrzymywanie informacji handlowych drogą elektroniczną na udostępniony przeze mnie adres e-mail od ELCARO Sp. z o.o.'
+            WHERE language_code = 'pl' AND code = 'EMAIL_CONTACT';
+
+            UPDATE consent_type_translations
+            SET description = 'I agree to receive marketing content from ELCARO Sp. z o.o. including information about the Company''s services, products, programs, and promotions.'
+            WHERE language_code = 'en' AND code = 'MARKETING';
+
+            UPDATE consent_type_translations
+            SET description = 'I agree to the use of telecommunications terminal equipment and automated calling systems for direct marketing purposes by ELCARO Sp. z o.o.'
+            WHERE language_code = 'en' AND code = 'PHONE_CONTACT';
+
+            UPDATE consent_type_translations
+            SET description = 'I agree to receive commercial information electronically to the email address I provided from ELCARO Sp. z o.o.'
+            WHERE language_code = 'en' AND code = 'EMAIL_CONTACT';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

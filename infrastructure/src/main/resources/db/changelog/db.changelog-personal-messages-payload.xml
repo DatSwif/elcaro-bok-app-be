@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="add-payload-to-personal-messages" author="elcaro">
+        <addColumn tableName="personal_messages">
+            <column name="payload" type="JSONB"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="update-personal-messages-seed-with-payload" author="elcaro" context="dev">
+        <sql splitStatements="false"><![CDATA[
+            DELETE FROM personal_messages;
+
+            INSERT INTO personal_messages (client_id, title, payload, level, is_read, created_at)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'MAINTENANCE_DATES', '{"startDate": "20.02.2025r", "endDate": "23.02.2025r"}', 1, false, NOW());
+
+            INSERT INTO personal_messages (client_id, title, payload, level, is_read, created_at)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'SYSTEM_OUTAGE', '{}', 2, false, NOW());
+
+            INSERT INTO personal_messages (client_id, title, payload, level, is_read, created_at)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'NEW_INVOICE', '{"invoiceNumber": "FV/2026/05", "amount": "126.50 PLN"}', 1, false, NOW());
+            ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

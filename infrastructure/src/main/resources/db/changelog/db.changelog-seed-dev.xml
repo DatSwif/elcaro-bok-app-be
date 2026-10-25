@@ -1,0 +1,1305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="seed-dev-document" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <sql>
+            INSERT INTO documents (id) VALUES ('Doc1')
+            ON CONFLICT (id) DO NOTHING;
+
+            INSERT INTO document_translations (language_code, document_id, name, text) VALUES
+                ('en', 'Doc1', 'Document 1', 'Contents of Document 1 from ''assets''
+Second line of Document 1'),
+                ('pl', 'Doc1', 'Dokument 1', 'Treści dokumentu 1 z ''assets''
+Drugi wiersz Dokumentu 1')
+            ON CONFLICT DO NOTHING;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO clients (client_number, language_code, failed_login_count) VALUES (
+                'C001', 'pl', 0
+            );
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                '+48123456789',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-email" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'client@example.com',
+                NOW()
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-addresses" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO client_addresses (client_id, address, contract_active_from, contract_active_until) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'ul. Marszałkowska 10/2, Warszawa',
+                '2018-08-21',
+                '2026-08-21'
+            );
+
+            INSERT INTO client_addresses (client_id, address, contract_active_from, contract_active_until) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'ul. Długa 5, Kraków',
+                '2021-08-21',
+                NULL
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-services-v2" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO services (monthly_fee) VALUES (126.50);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', '600/120 Mb/s', 'Wysyłanie: do 120 Mb/s, Pobieranie: do 600 Mb/s'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', '600/120 Mbps', 'Upload: up to 120 Mbps, Download: up to 600 Mbps'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (59.50);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Komfort Plus 4K', '128 kanałów 4K'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Comfort Plus 4K', '128 channels 4K'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (NULL);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', '20 nagran / 60 dni', 'Pakiet nagrywania w chmurze'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', '20 recordings / 60 days', 'Cloud recording package'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (55.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'No limit 56', 'Nielimitowane rozmowy i SMS'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'No limit 56', 'Unlimited calls and SMS'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (55.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Inna usługa', 'Dodatkowa usługa'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Other service', 'Additional service'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (126.50);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', '1000GB', 'Pakiet danych mobilnych 1000GB'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', '1000GB', 'Mobile data package 1000GB'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (40.00);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Telewizja standard', 'Podstawowy pakiet telewizyjny'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Standard TV', 'Basic TV package'
+                FROM services ORDER BY id DESC LIMIT 1;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-fix-null-address-id" author="elcaro" context="dev">
+        <sql>
+            UPDATE client_services
+            SET address_id = (
+                SELECT ca.id FROM client_addresses ca
+                WHERE ca.client_id = client_services.client_id
+                ORDER BY ca.id
+                LIMIT 1
+            )
+            WHERE address_id IS NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-services-fiber-cable-voip" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO services (monthly_fee) VALUES (49.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Internet 100 Mb/s', 'Szybki internet światłowodowy 100 Mb/s'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Internet 100 Mbps', 'Fast fiber internet 100 Mbps'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (29.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Pakiet TV Basic', 'Podstawowy pakiet telewizji kablowej'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'TV Basic Package', 'Basic cable TV package'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (19.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Telefon VoIP', 'Telefonia internetowa VoIP'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'VoIP Phone', 'Internet VoIP telephony'
+                FROM services ORDER BY id DESC LIMIT 1;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-services-fiber-cable-voip" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment)
+            SELECT st.service_id, c.id, ca.id, 'FIBER', 'ACTIVE', '2023-01-01', NULL, '2026-05-01T00:00:00Z'
+            FROM (SELECT service_id FROM service_translations WHERE language_code = 'pl' AND name = 'Internet 100 Mb/s' ORDER BY service_id DESC LIMIT 1) st
+            CROSS JOIN (SELECT id FROM clients WHERE client_number = 'C001') c
+            CROSS JOIN (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' ORDER BY id LIMIT 1) ca;
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment)
+            SELECT st.service_id, c.id, ca.id, 'CABLE', 'ACTIVE', '2023-01-01', NULL, '2026-05-01T00:00:00Z'
+            FROM (SELECT service_id FROM service_translations WHERE language_code = 'pl' AND name = 'Pakiet TV Basic' ORDER BY service_id DESC LIMIT 1) st
+            CROSS JOIN (SELECT id FROM clients WHERE client_number = 'C001') c
+            CROSS JOIN (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' ORDER BY id LIMIT 1) ca;
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment)
+            SELECT st.service_id, c.id, ca.id, 'VOIP', 'ACTIVE', '2023-01-01', NULL, '2026-05-01T00:00:00Z'
+            FROM (SELECT service_id FROM service_translations WHERE language_code = 'pl' AND name = 'Telefon VoIP' ORDER BY service_id DESC LIMIT 1) st
+            CROSS JOIN (SELECT id FROM clients WHERE client_number = 'C001') c
+            CROSS JOIN (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' ORDER BY id LIMIT 1) ca;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-tv-packages" author="elcaro" context="dev">
+        <sql>
+            -- TV Channels (pictogram is a 1x1 white PNG placeholder)
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'TVP 1');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'TVP 1');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'TVP 2');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'TVP 2');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'Polsat');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'Polsat');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'TVN');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'TVN');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'TVP Sport');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'TVP Sport');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'Canal+ Sport');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'Canal+ Sport');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'HBO');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'HBO');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'Filmbox');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'Filmbox');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'MiniMini+');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'MiniMini+');
+
+            INSERT INTO tv_channels (pictogram) VALUES (lo_from_bytea(0, decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==', 'base64')));
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('pl', currval('tv_channels_id_seq'), 'Cartoon Network');
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name) VALUES ('en', currval('tv_channels_id_seq'), 'Cartoon Network');
+
+            -- Packages for "Komfort Plus 4K"
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Podstawowy', 0.00, true
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Komfort Plus 4K' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Podstawowy');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Basic');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('TVP 1', 'TVP 2', 'Polsat', 'TVN');
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Sport+', 19.99, false
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Komfort Plus 4K' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Sport+');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Sport+');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('TVP Sport', 'Canal+ Sport');
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Filmy+', 14.99, false
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Komfort Plus 4K' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Filmy+');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Movies+');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('HBO', 'Filmbox');
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Dla dzieci', 9.99, false
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Komfort Plus 4K' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Dla dzieci');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Kids');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('MiniMini+', 'Cartoon Network');
+
+            -- Packages for "Telewizja standard"
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Pakiet podstawowy', 0.00, true
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Telewizja standard' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Pakiet podstawowy');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Basic package');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('TVP 1', 'TVP 2', 'Polsat');
+
+            INSERT INTO tv_channel_packages (service_id, name, monthly_fee, is_base_package)
+            SELECT service_id, 'Rozszerzony', 12.99, false
+            FROM service_translations WHERE language_code = 'pl' AND name = 'Telewizja standard' LIMIT 1;
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('pl', currval('tv_service_offers_id_seq'), 'Rozszerzony');
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            VALUES ('en', currval('tv_service_offers_id_seq'), 'Extended');
+            INSERT INTO tv_channel_offers (tv_service_id, tv_channel_id)
+            SELECT currval('tv_service_offers_id_seq'), tc.id
+            FROM tv_channels tc JOIN tv_channel_translations t ON t.tv_channel_id = tc.id AND t.language_code = 'pl'
+            WHERE t.name IN ('TVN', 'HBO');
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-services-v2" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = '600/120 Mb/s'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Internet', 'Blocked', '2018-08-21', '2026-08-21', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = 'Komfort Plus 4K'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Television', 'Active', '2026-08-21', '2026-09-21', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = '20 nagran / 60 dni'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Mobile', 'Pending', '2026-01-01', NULL, NULL
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = 'No limit 56'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Mobile', 'Suspended', '2025-06-01', '2026-06-01', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = 'Inna usługa'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Other', 'Active', '2024-01-01', '2025-01-01', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = 'Inna usługa'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Other', 'Pending', '2026-03-01', NULL, NULL
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = '600/120 Mb/s'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Marszałkowska%' LIMIT 1),
+                'Internet', 'Blocked', '2020-01-01', '2026-08-21', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = '600/120 Mb/s'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Długa%' LIMIT 1),
+                'Internet', 'Blocked', '2021-08-21', '2026-08-21', '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = '1000GB'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Długa%' LIMIT 1),
+                'Mobile', 'Active', '2022-01-01', NULL, '2026-05-01T00:00:00Z'
+            );
+
+            INSERT INTO client_services (service_id, client_id, address_id, service_type, status, start_date, end_date, next_payment) VALUES (
+                (SELECT st.service_id FROM service_translations st WHERE st.language_code = 'pl' AND st.name = 'Telewizja standard'),
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                (SELECT id FROM client_addresses WHERE address LIKE '%Długa%' LIMIT 1),
+                'Television', 'Pending', '2026-03-01', NULL, '2026-05-01T00:00:00Z'
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-messages" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM global_messages</sqlCheck>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM personal_messages</sqlCheck>
+        </preConditions>
+        <sql>
+            INSERT INTO global_messages (title, content, created_at) VALUES
+                ('Pierwsza wiadomość', 'To jest treść pierwszej wiadomości.', NOW()),
+                ('Druga wiadomość', 'To jest treść drugiej wiadomości.', NOW()),
+                ('Trzecia wiadomość', 'To jest treść trzeciej wiadomości.', NOW()),
+                ('Czwarta wiadomość', 'To jest treść czwartej wiadomości.', NOW()),
+                ('Piąta wiadomość', 'To jest treść piątej wiadomości.', NOW()),
+                ('Szósta wiadomość', 'To jest treść szóstej wiadomości.', NOW()),
+                ('Siódma wiadomość', 'To jest treść siódmej wiadomości.', NOW());
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, read_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'Planowane są prace remontowe w dniach 20.02.2025r - 23.02.2025r.',
+                1, false, NULL, NOW()
+            );
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, read_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'Wystąpiła awaria!. Niektóre z usług mogą działać nieprawidłowe lub wcale. Nasi technicy pracują na usunięciem problemu...',
+                2, false, NULL, NOW()
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-messages-fix-ordinals" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM global_messages
+                WHERE title = 'Druga wiadomość' AND id &gt; 2
+                LIMIT 1
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE global_messages SET title = 'Trzecia wiadomość', content = 'To jest treść trzeciej wiadomości.' WHERE id = 3;
+            UPDATE global_messages SET title = 'Czwarta wiadomość', content = 'To jest treść czwartej wiadomości.' WHERE id = 4;
+            UPDATE global_messages SET title = 'Piąta wiadomość',   content = 'To jest treść piątej wiadomości.'   WHERE id = 5;
+            UPDATE global_messages SET title = 'Szósta wiadomość',  content = 'To jest treść szóstej wiadomości.'  WHERE id = 6;
+            UPDATE global_messages SET title = 'Siódma wiadomość',  content = 'To jest treść siódmej wiadomości.'  WHERE id = 7;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM offers</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            INSERT INTO offers (id, title, subtitle, image_url, category, tags, featured, legal_note) VALUES
+                (1, 'Internet 1Gb/s', 'Światłowodowy szybki internet do domu', NULL, 'INTERNET', 'PROMO', true,
+                 'Promocja obowiązuje przy umowie na 24 miesiące. Szczegóły w regulaminie.'),
+                (2, 'Pakiet TV Komfort 4K', 'Ponad 150 kanałów w jakości 4K', NULL, 'TV', 'PROMO', true,
+                 'Cena promocyjna obowiązuje przez pierwsze 6 miesięcy.'),
+                (3, 'Internet + TV', 'Najszybszy światłowód i bogata oferta TV w jednym pakiecie', NULL, 'INTERNET_TV', 'PROMO', false,
+                 'Pakiet dostępny w wybranych lokalizacjach.'),
+                (4, 'Mobile No Limit', 'Nielimitowane rozmowy, SMS oraz 100GB internetu', NULL, 'MOBILE', '', false,
+                 'Roaming UE bez dodatkowych opłat zgodnie z regulacjami UE.'),
+                (5, 'Router Wi-Fi 6', 'Szybki router do gospodarstwa domowego', NULL, 'DEVICES', 'PROMO', false,
+                 'Sprzęt objęty 24-miesięczną gwarancją.');
+
+            SELECT setval(pg_get_serial_sequence('offers', 'id'), (SELECT MAX(id) FROM offers));
+
+            INSERT INTO offer_variants (id, offer_id, name, regular_price, current_price, period, promo_description, blocks_json) VALUES
+                (1, 1, '1 Gb/s 24M', 99.99, 79.99, 'MONTH', 'Oszczędzasz 20 zł/mies. przez 12 miesięcy.',
+                 '[
+                    {"type":"PROMO_BADGE","headline":"Hit cenowy","subheadline":"Tylko teraz -20%"},
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"1000 Mb/s","secondary_metric":"download"},
+                    {"type":"HARDWARE","title":"Sprzęt w abonamencie","items":[{"icon":"https://api.iconify.design/material-symbols/router.svg","name":"Router Wi-Fi 6","cost_note":"w cenie","is_mandatory":true}]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[{"name":"Aktywacja","amount":1.00}]}
+                  ]'),
+                (2, 1, '500 Mb/s 24M', 79.99, 59.99, 'MONTH', 'Tańsza alternatywa o połowę szybsza od standardu.',
+                 '[
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"500 Mb/s","secondary_metric":"download"},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[{"name":"Aktywacja","amount":1.00}]}
+                  ]'),
+
+                (3, 2, 'Komfort 4K 24M', 79.99, 59.99, 'MONTH', '6 miesięcy w cenie 59,99 zł.',
+                 '[
+                    {"type":"PROMO_BADGE","headline":"-25%","subheadline":"przez 6 miesięcy"},
+                    {"type":"TV_PACKAGES","icon":"https://api.iconify.design/material-symbols/tv.svg","title":"Pakiet Komfort 4K","primary_metric":"152 kanały","secondary_metric":"w tym 25 w 4K"},
+                    {"type":"PREMIUM_ADDONS","title":"HBO Max","is_included":true,"description":"W cenie pakietu przez 12 miesięcy.","addons":[]},
+                    {"type":"HARDWARE","title":"Dekoder 4K","items":[{"icon":"https://api.iconify.design/material-symbols/dvr.svg","name":"Dekoder 4K","cost_note":"w cenie","is_mandatory":true}]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[]}
+                  ]'),
+
+                (4, 3, 'Internet 1Gb + TV Komfort 4K', 159.99, 119.99, 'MONTH', 'Oszczędzasz 40 zł/mies. w pakiecie 2w1.',
+                 '[
+                    {"type":"PROMO_BADGE","headline":"Pakiet 2w1","subheadline":"Internet + TV taniej razem"},
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"1000 Mb/s","secondary_metric":"download"},
+                    {"type":"TV_PACKAGES","icon":"https://api.iconify.design/material-symbols/tv.svg","title":"Pakiet Komfort 4K","primary_metric":"152 kanały","secondary_metric":"w tym 25 w 4K"},
+                    {"type":"PREMIUM_ADDONS","title":"HBO Max","is_included":true,"description":"W cenie pakietu przez 12 miesięcy.","addons":[]},
+                    {"type":"HARDWARE","title":"Sprzęt w abonamencie","items":[{"icon":"https://api.iconify.design/material-symbols/router.svg","name":"Router Wi-Fi 6","cost_note":"w cenie","is_mandatory":true},{"icon":"https://api.iconify.design/material-symbols/dvr.svg","name":"Dekoder 4K","cost_note":"w cenie","is_mandatory":true}]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[{"name":"Aktywacja","amount":1.00}]}
+                  ]'),
+
+                (5, 4, 'No Limit 100GB 24M', 49.99, 39.99, 'MONTH', 'Pierwsze 6 miesięcy taniej.',
+                 '[
+                    {"type":"MOBILE_PLAN","icon":"https://api.iconify.design/material-symbols/smartphone.svg","title":"No Limit 100GB","data_limit":"100 GB","calls_sms":"Nielimitowane","roaming":"UE bez dopłat"},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[]}
+                  ]'),
+
+                (6, 5, 'Router Wi-Fi 6 jednorazowo', 499.00, 349.00, 'ONCE', 'Cena promocyjna do wyczerpania zapasów.',
+                 '[
+                    {"type":"HARDWARE","title":"Co dostaniesz","items":[{"icon":"https://api.iconify.design/material-symbols/router.svg","name":"Router Wi-Fi 6","cost_note":"jednorazowo","is_mandatory":true}]}
+                  ]');
+
+            SELECT setval(pg_get_serial_sequence('offer_variants', 'id'), (SELECT MAX(id) FROM offer_variants));
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-image-urls" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (SELECT 1 FROM offers WHERE image_url LIKE 'https://placehold.co/%') THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE offers SET image_url = NULL WHERE image_url LIKE 'https://placehold.co/%';
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-fa-icons" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM offer_variants WHERE blocks_json LIKE '%"icon":"globe"%'
+                       OR blocks_json LIKE '%"icon":"tv"%'
+                       OR blocks_json LIKE '%"icon":"mobile"%'
+                       OR blocks_json LIKE '%"icon":"router"%'
+                       OR blocks_json LIKE '%"icon":"set-top-box"%'
+                ) THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json, '"icon":"globe"', '"icon":"https://api.iconify.design/material-symbols/globe.svg"');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json, '"icon":"tv"', '"icon":"https://api.iconify.design/material-symbols/tv.svg"');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json, '"icon":"mobile"', '"icon":"https://api.iconify.design/material-symbols/smartphone.svg"');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json, '"icon":"router"', '"icon":"https://api.iconify.design/material-symbols/router.svg"');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json, '"icon":"set-top-box"', '"icon":"https://api.iconify.design/material-symbols/dvr.svg"');
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-material-symbols" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM offer_variants WHERE blocks_json LIKE '%cdn.jsdelivr.net/npm/@fortawesome%'
+                ) THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json,
+                'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/svgs/solid/globe.svg',
+                'https://api.iconify.design/material-symbols/globe.svg');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json,
+                'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/svgs/solid/tv.svg',
+                'https://api.iconify.design/material-symbols/tv.svg');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json,
+                'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/svgs/solid/mobile-screen.svg',
+                'https://api.iconify.design/material-symbols/smartphone.svg');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json,
+                'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/svgs/solid/wifi.svg',
+                'https://api.iconify.design/material-symbols/router.svg');
+            UPDATE offer_variants SET blocks_json = REPLACE(blocks_json,
+                'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/svgs/solid/box.svg',
+                'https://api.iconify.design/material-symbols/dvr.svg');
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-image-urls-revert" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (SELECT 1 FROM offers WHERE image_url LIKE 'https://placehold.co/%') THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE offers SET image_url = NULL WHERE image_url LIKE 'https://placehold.co/%';
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-messages-fix-ordinals-v2" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM global_messages WHERE title = 'Druga wiadomość' AND id &gt; 2
+                ) THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE global_messages SET title = 'Trzecia wiadomość', content = 'To jest treść trzeciej wiadomości.' WHERE id = 3;
+            UPDATE global_messages SET title = 'Czwarta wiadomość', content = 'To jest treść czwartej wiadomości.' WHERE id = 4;
+            UPDATE global_messages SET title = 'Piąta wiadomość',   content = 'To jest treść piątej wiadomości.'   WHERE id = 5;
+            UPDATE global_messages SET title = 'Szósta wiadomość',  content = 'To jest treść szóstej wiadomości.'  WHERE id = 6;
+            UPDATE global_messages SET title = 'Siódma wiadomość',  content = 'To jest treść siódmej wiadomości.'  WHERE id = 7;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-services-extra" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM service_translations WHERE language_code = 'pl' AND name = 'Internet 300 Mb/s'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            INSERT INTO services (monthly_fee) VALUES (69.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Internet 300 Mb/s', 'Średniej prędkości światłowód 300 Mb/s'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Internet 300 Mbps', 'Mid-tier fiber internet 300 Mbps'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (89.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Telewizja Premium 4K', '200+ kanałów, w tym sport i filmy premium w 4K'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Premium TV 4K', '200+ channels including premium sports and movies in 4K'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (35.00);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Mobile Start', '5 GB internetu, 100 minut rozmów'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Mobile Start', '5 GB data, 100 minutes calls'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (15.00);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Pakiet Sport', 'Dodatkowe kanały sportowe'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Sport Package', 'Additional sport channels'
+                FROM services ORDER BY id DESC LIMIT 1;
+
+            INSERT INTO services (monthly_fee) VALUES (9.99);
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'pl', 'Statyczne IP', 'Stały publiczny adres IPv4'
+                FROM services ORDER BY id DESC LIMIT 1;
+            INSERT INTO service_translations (service_id, language_code, name, info)
+                SELECT id, 'en', 'Static IP', 'Dedicated public IPv4 address'
+                FROM services ORDER BY id DESC LIMIT 1;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-extra" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM offers WHERE title = 'Internet 2Gb/s Premium'</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            INSERT INTO offers (title, subtitle, image_url, category, tags, featured, legal_note) VALUES
+                ('Internet 2Gb/s Premium', 'Najszybszy światłowód dla wymagających', NULL, 'INTERNET', 'PROMO,NEW', true,
+                 'Promocja obowiązuje przy umowie na 24 miesiące. Wymaga sprzętu Wi-Fi 7.'),
+                ('Pakiet TV Sport', 'Wszystkie kanały sportowe w jednej cenie', NULL, 'TV', 'NEW', false,
+                 'Pakiet zawiera kanały dostępne w cenie przez czas trwania umowy.'),
+                ('Internet + TV + Mobile', 'Kompletny pakiet domowy z usługą mobilną', NULL, 'INTERNET_TV', 'PROMO,BEST', true,
+                 'Wymaga aktywnej linii mobilnej u operatora.'),
+                ('Mobile Student', 'Specjalna oferta dla uczniów i studentów', NULL, 'MOBILE', 'PROMO', false,
+                 'Wymagana ważna legitymacja szkolna lub studencka.'),
+                ('Dekoder 4K Hybrid', 'Dekoder z dostępem do aplikacji streamingowych', NULL, 'DEVICES', 'NEW', false,
+                 'Sprzęt objęty 24-miesięczną gwarancją producenta.');
+
+            SELECT setval(pg_get_serial_sequence('offers', 'id'), (SELECT MAX(id) FROM offers));
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, '2 Gb/s 24M', 149.99, 119.99, 'MONTH', 'Pierwsze 12 miesięcy taniej.',
+                '[
+                    {"type":"PROMO_BADGE","headline":"Nowość","subheadline":"Najszybszy światłowód"},
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"2000 Mb/s","secondary_metric":"download"},
+                    {"type":"HARDWARE","title":"Sprzęt w abonamencie","items":[{"icon":"https://api.iconify.design/material-symbols/router.svg","name":"Router Wi-Fi 7","cost_note":"w cenie","is_mandatory":true}]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[{"name":"Aktywacja","amount":1.00}]}
+                  ]'
+            FROM offers WHERE title = 'Internet 2Gb/s Premium';
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, 'Sport 12M', 39.99, 29.99, 'MONTH', '25% taniej przez pierwsze 6 miesięcy.',
+                '[
+                    {"type":"TV_PACKAGES","icon":"https://api.iconify.design/material-symbols/tv.svg","title":"Pakiet Sport","primary_metric":"30 kanałów","secondary_metric":"w tym 8 w 4K"},
+                    {"type":"PREMIUM_ADDONS","title":"Canal+ Sport","is_included":true,"description":"W cenie pakietu przez 6 miesięcy.","addons":[]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":12,"upfront_fees":[]}
+                  ]'
+            FROM offers WHERE title = 'Pakiet TV Sport';
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, 'Triple Play 24M', 219.99, 159.99, 'MONTH', 'Oszczędzasz 60 zł/mies. w pakiecie 3w1.',
+                '[
+                    {"type":"PROMO_BADGE","headline":"Pakiet 3w1","subheadline":"Najlepsza oferta"},
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"1000 Mb/s","secondary_metric":"download"},
+                    {"type":"TV_PACKAGES","icon":"https://api.iconify.design/material-symbols/tv.svg","title":"Pakiet Komfort 4K","primary_metric":"152 kanały","secondary_metric":"w tym 25 w 4K"},
+                    {"type":"MOBILE_PLAN","icon":"https://api.iconify.design/material-symbols/smartphone.svg","title":"No Limit 50GB","data_limit":"50 GB","calls_sms":"Nielimitowane","roaming":"UE bez dopłat"},
+                    {"type":"HARDWARE","title":"Sprzęt w abonamencie","items":[{"icon":"https://api.iconify.design/material-symbols/router.svg","name":"Router Wi-Fi 6","cost_note":"w cenie","is_mandatory":true},{"icon":"https://api.iconify.design/material-symbols/dvr.svg","name":"Dekoder 4K","cost_note":"w cenie","is_mandatory":true}]},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[{"name":"Aktywacja","amount":1.00}]}
+                  ]'
+            FROM offers WHERE title = 'Internet + TV + Mobile';
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, 'Student 24M', 39.99, 19.99, 'MONTH', '50% rabatu dla uczniów i studentów.',
+                '[
+                    {"type":"PROMO_BADGE","headline":"-50%","subheadline":"Dla uczniów i studentów"},
+                    {"type":"MOBILE_PLAN","icon":"https://api.iconify.design/material-symbols/smartphone.svg","title":"Student 30GB","data_limit":"30 GB","calls_sms":"Nielimitowane","roaming":"UE bez dopłat"},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":24,"upfront_fees":[]}
+                  ]'
+            FROM offers WHERE title = 'Mobile Student';
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, 'Hybrid 4K jednorazowo', 799.00, 599.00, 'ONCE', 'Cena promocyjna do końca miesiąca.',
+                '[
+                    {"type":"HARDWARE","title":"Co dostaniesz","items":[{"icon":"https://api.iconify.design/material-symbols/dvr.svg","name":"Dekoder 4K Hybrid","cost_note":"jednorazowo","is_mandatory":true}]}
+                  ]'
+            FROM offers WHERE title = 'Dekoder 4K Hybrid';
+
+            INSERT INTO offer_variants (offer_id, name, regular_price, current_price, period, promo_description, blocks_json)
+            SELECT id, '2 Gb/s 36M', 139.99, 99.99, 'MONTH', 'Najlepsza cena przy umowie 36-miesięcznej.',
+                '[
+                    {"type":"INTERNET_SERVICE","icon":"https://api.iconify.design/material-symbols/globe.svg","service_type":"FIBER","primary_metric":"2000 Mb/s","secondary_metric":"download"},
+                    {"type":"CONTRACT_CONDITIONS","title":"Warunki umowy","duration_months":36,"upfront_fees":[]}
+                  ]'
+            FROM offers WHERE title = 'Internet 2Gb/s Premium';
+
+            SELECT setval(pg_get_serial_sequence('offer_variants', 'id'), (SELECT MAX(id) FROM offer_variants));
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-french-translations" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM service_translations WHERE language_code = 'fr'</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- Documents
+            INSERT INTO document_translations (language_code, document_id, name, text)
+            SELECT 'fr', document_id,
+                   CASE name
+                       WHEN 'Document 1' THEN 'Document 1'
+                       ELSE name
+                   END,
+                   'Contenu du document 1 depuis ''assets''
+Deuxième ligne du document 1'
+            FROM document_translations WHERE language_code = 'en';
+
+            -- Services
+            INSERT INTO service_translations (service_id, language_code, name, info)
+            SELECT service_id, 'fr',
+                   CASE name
+                       WHEN '600/120 Mb/s'           THEN '600/120 Mb/s'
+                       WHEN 'Komfort Plus 4K'        THEN 'Confort Plus 4K'
+                       WHEN '20 nagran / 60 dni'     THEN '20 enregistrements / 60 jours'
+                       WHEN 'No limit 56'            THEN 'Illimité 56'
+                       WHEN 'Inna usługa'            THEN 'Autre service'
+                       WHEN '1000GB'                 THEN '1000 Go'
+                       WHEN 'Telewizja standard'     THEN 'Télévision standard'
+                       WHEN 'Internet 100 Mb/s'      THEN 'Internet 100 Mb/s'
+                       WHEN 'Pakiet TV Basic'        THEN 'Pack TV Basic'
+                       WHEN 'Telefon VoIP'           THEN 'Téléphone VoIP'
+                       WHEN 'Internet 300 Mb/s'      THEN 'Internet 300 Mb/s'
+                       WHEN 'Telewizja Premium 4K'   THEN 'Télévision Premium 4K'
+                       WHEN 'Mobile Start'           THEN 'Mobile Start'
+                       WHEN 'Pakiet Sport'           THEN 'Pack Sport'
+                       WHEN 'Statyczne IP'           THEN 'IP statique'
+                       ELSE name
+                   END,
+                   CASE name
+                       WHEN '600/120 Mb/s'           THEN 'Envoi : jusqu''à 120 Mb/s, Téléchargement : jusqu''à 600 Mb/s'
+                       WHEN 'Komfort Plus 4K'        THEN '128 chaînes 4K'
+                       WHEN '20 nagran / 60 dni'     THEN 'Pack d''enregistrement dans le cloud'
+                       WHEN 'No limit 56'            THEN 'Appels et SMS illimités'
+                       WHEN 'Inna usługa'            THEN 'Service supplémentaire'
+                       WHEN '1000GB'                 THEN 'Pack data mobile 1000 Go'
+                       WHEN 'Telewizja standard'     THEN 'Pack TV de base'
+                       WHEN 'Internet 100 Mb/s'      THEN 'Internet fibre rapide 100 Mb/s'
+                       WHEN 'Pakiet TV Basic'        THEN 'Pack TV câble basique'
+                       WHEN 'Telefon VoIP'           THEN 'Téléphonie internet VoIP'
+                       WHEN 'Internet 300 Mb/s'      THEN 'Fibre internet milieu de gamme 300 Mb/s'
+                       WHEN 'Telewizja Premium 4K'   THEN 'Plus de 200 chaînes, dont sport et cinéma premium en 4K'
+                       WHEN 'Mobile Start'           THEN '5 Go de données, 100 minutes d''appels'
+                       WHEN 'Pakiet Sport'           THEN 'Chaînes sportives supplémentaires'
+                       WHEN 'Statyczne IP'           THEN 'Adresse IPv4 publique dédiée'
+                       ELSE info
+                   END
+            FROM service_translations WHERE language_code = 'pl';
+
+            -- TV channels (names mostly identical, but normalize a few)
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name)
+            SELECT 'fr', tv_channel_id, name
+            FROM tv_channel_translations WHERE language_code = 'pl';
+
+            -- TV channel packages
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            SELECT 'fr', tv_channel_package_id,
+                   CASE name
+                       WHEN 'Podstawowy'        THEN 'De base'
+                       WHEN 'Sport+'            THEN 'Sport+'
+                       WHEN 'Filmy+'            THEN 'Films+'
+                       WHEN 'Dla dzieci'        THEN 'Pour enfants'
+                       WHEN 'Pakiet podstawowy' THEN 'Pack de base'
+                       WHEN 'Rozszerzony'       THEN 'Étendu'
+                       ELSE name
+                   END
+            FROM tv_channel_package_translations WHERE language_code = 'pl';
+
+            -- Consent types
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, description)
+            SELECT 'fr', consent_type_id, code,
+                   CASE code
+                       WHEN 'MARKETING' THEN 'Consentement à la communication marketing'
+                       ELSE description
+                   END
+            FROM consent_type_translations WHERE language_code = 'en';
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-hardware" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM hardware</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- Router Wi-Fi 6
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/router-wifi-6.jpg', true, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Router Wi-Fi 6'),
+                ('en', currval('hardware_id_seq'), 'Wi-Fi 6 Router'),
+                ('fr', currval('hardware_id_seq'), 'Routeur Wi-Fi 6');
+
+            -- Router Wi-Fi 7
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/router-wifi-7.jpg', true, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Router Wi-Fi 7'),
+                ('en', currval('hardware_id_seq'), 'Wi-Fi 7 Router'),
+                ('fr', currval('hardware_id_seq'), 'Routeur Wi-Fi 7');
+
+            -- Modem światłowodowy
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/fiber-modem.jpg', true, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Modem światłowodowy'),
+                ('en', currval('hardware_id_seq'), 'Fiber modem'),
+                ('fr', currval('hardware_id_seq'), 'Modem fibre');
+
+            -- Dekoder 4K
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/decoder-4k.jpg', true, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Dekoder 4K'),
+                ('en', currval('hardware_id_seq'), '4K Set-top box'),
+                ('fr', currval('hardware_id_seq'), 'Décodeur 4K');
+
+            -- Dekoder 4K Hybrid
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/decoder-4k-hybrid.jpg', true, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Dekoder 4K Hybrid'),
+                ('en', currval('hardware_id_seq'), '4K Hybrid Set-top box'),
+                ('fr', currval('hardware_id_seq'), 'Décodeur 4K Hybride');
+
+            -- Telefon VoIP
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/voip-phone.jpg', true, false);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Telefon VoIP'),
+                ('en', currval('hardware_id_seq'), 'VoIP Phone'),
+                ('fr', currval('hardware_id_seq'), 'Téléphone VoIP');
+
+            -- Karta SIM
+            INSERT INTO hardware (image_path, is_returnable, is_reportable)
+            VALUES ('http://localhost:8080/hardware/sim-card.jpg', false, true);
+            INSERT INTO hardware_translations (language_code, hardware_id, name) VALUES
+                ('pl', currval('hardware_id_seq'), 'Karta SIM'),
+                ('en', currval('hardware_id_seq'), 'SIM Card'),
+                ('fr', currval('hardware_id_seq'), 'Carte SIM');
+
+            -- Link hardware to compatible services via services_hardware
+            INSERT INTO services_hardware (service_id, hardware_id)
+            SELECT st.service_id, ht.hardware_id
+            FROM service_translations st, hardware_translations ht
+            WHERE st.language_code = 'pl' AND ht.language_code = 'pl'
+              AND (
+                  (st.name IN ('600/120 Mb/s', 'Internet 100 Mb/s', 'Internet 300 Mb/s') AND ht.name IN ('Router Wi-Fi 6', 'Modem światłowodowy'))
+                  OR (st.name IN ('Komfort Plus 4K', 'Telewizja Premium 4K') AND ht.name = 'Dekoder 4K Hybrid')
+                  OR (st.name = 'Telewizja standard' AND ht.name = 'Dekoder 4K')
+                  OR (st.name = 'Pakiet TV Basic' AND ht.name = 'Dekoder 4K')
+                  OR (st.name = 'Telefon VoIP' AND ht.name = 'Telefon VoIP')
+                  OR (st.name IN ('No limit 56', '1000GB', 'Mobile Start') AND ht.name = 'Karta SIM')
+              );
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-invoices-2" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM invoices WHERE status IN ('PENDING', 'PAID')</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- Create invoices with distinct statuses and distinct years
+            INSERT INTO invoices (invoice_number, issue_date, due_date, period_start, period_end, total_amount, status, client_id, document_id)
+            VALUES
+                ('FV/2023/01/10001/23', '2023-01-01 10:00:00', '2023-01-15 10:00:00', '2023-01-01 00:00:00', '2023-01-31 23:59:59', 150.00, 'PAID', (SELECT id FROM clients LIMIT 1), 'doc-2023-1'),
+                ('FV/2024/01/10002/23', '2024-01-01 10:00:00', '2024-01-15 10:00:00', '2024-01-01 00:00:00', '2024-01-31 23:59:59', 200.00, 'PAID', (SELECT id FROM clients LIMIT 1), 'doc-2024-1'),
+                ('FV/2025/01/10003/23', '2025-01-01 10:00:00', '2025-01-15 10:00:00', '2025-01-01 00:00:00', '2025-01-31 23:59:59', 250.00, 'PENDING', (SELECT id FROM clients LIMIT 1), 'doc-2025-1'),
+                ('FV/2026/01/10004/23', '2026-01-01 10:00:00', '2026-01-15 10:00:00', '2026-01-01 00:00:00', '2026-01-31 23:59:59', 300.00, 'UNPAID', (SELECT id FROM clients LIMIT 1), 'doc-2026-1');
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-notification-types" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM notification_types</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            INSERT INTO notification_types (code) VALUES ('INVOICE_REMINDER');
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name) VALUES
+                ('pl', currval('notification_types_id_seq'), 'Przypomnienie o fakturze'),
+                ('en', currval('notification_types_id_seq'), 'Invoice reminder'),
+                ('fr', currval('notification_types_id_seq'), 'Rappel de facture');
+
+            INSERT INTO notification_types (code) VALUES ('SERVICE_OUTAGE');
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name) VALUES
+                ('pl', currval('notification_types_id_seq'), 'Awaria usługi'),
+                ('en', currval('notification_types_id_seq'), 'Service outage'),
+                ('fr', currval('notification_types_id_seq'), 'Panne de service');
+
+            INSERT INTO notification_types (code) VALUES ('PROMO');
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name) VALUES
+                ('pl', currval('notification_types_id_seq'), 'Promocje i nowości'),
+                ('en', currval('notification_types_id_seq'), 'Promotions and news'),
+                ('fr', currval('notification_types_id_seq'), 'Promotions et actualités');
+
+            INSERT INTO notification_types (code) VALUES ('SECURITY_ALERT');
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name) VALUES
+                ('pl', currval('notification_types_id_seq'), 'Alert bezpieczeństwa'),
+                ('en', currval('notification_types_id_seq'), 'Security alert'),
+                ('fr', currval('notification_types_id_seq'), 'Alerte de sécurité');
+
+            INSERT INTO notification_types (code) VALUES ('CONTRACT_EXPIRING');
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name) VALUES
+                ('pl', currval('notification_types_id_seq'), 'Wygasająca umowa'),
+                ('en', currval('notification_types_id_seq'), 'Contract expiring'),
+                ('fr', currval('notification_types_id_seq'), 'Contrat arrivant à échéance');
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-user-notification-settings" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM user_notification_settings</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            INSERT INTO user_notification_settings (client_id, notification_type_id, channel, is_enabled)
+            SELECT c.id, nt.id, settings.channel, settings.is_enabled
+            FROM (SELECT id FROM clients WHERE client_number = 'C001') c
+            CROSS JOIN notification_types nt
+            CROSS JOIN LATERAL (VALUES
+                ('INVOICE_REMINDER',   'EMAIL', true),
+                ('SERVICE_OUTAGE',     'SMS',   true),
+                ('PROMO',              'EMAIL', false),
+                ('SECURITY_ALERT',     'EMAIL', true),
+                ('CONTRACT_EXPIRING',  'EMAIL', true)
+            ) AS settings(code, channel, is_enabled)
+            WHERE nt.code = settings.code;
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-user-consents" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM user_consents</sqlCheck>
+        </preConditions>
+        <sql>
+            INSERT INTO user_consents (client_id, consent_type_id, is_granted, granted_at)
+            SELECT
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                ct.id,
+                true,
+                NOW()
+            FROM consent_types ct
+            JOIN consent_type_translations ctt ON ctt.consent_type_id = ct.id
+            WHERE ctt.language_code = 'en' AND ctt.code = 'MARKETING'
+            LIMIT 1;
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-hardware" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM client_hardware</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- Router Wi-Fi 6 → C001's active fiber service on Marszałkowska
+            INSERT INTO client_hardware (hardware_id, client_service_id, ownership, serial_number)
+            SELECT
+                (SELECT h.id FROM hardware h JOIN hardware_translations ht ON ht.hardware_id = h.id
+                 WHERE ht.language_code = 'pl' AND ht.name = 'Router Wi-Fi 6' LIMIT 1),
+                cs.id, 'RENTED', 'WIFI6-MARSZ-001'
+            FROM client_services cs
+            JOIN service_translations st ON st.service_id = cs.service_id AND st.language_code = 'pl'
+            JOIN clients c ON c.id = cs.client_id
+            JOIN client_addresses ca ON ca.id = cs.address_id
+            WHERE c.client_number = 'C001' AND st.name = 'Internet 100 Mb/s' AND ca.address LIKE '%Marszałkowska%'
+            LIMIT 1;
+
+            -- Dekoder 4K Hybrid → Komfort Plus 4K
+            INSERT INTO client_hardware (hardware_id, client_service_id, ownership, serial_number)
+            SELECT
+                (SELECT h.id FROM hardware h JOIN hardware_translations ht ON ht.hardware_id = h.id
+                 WHERE ht.language_code = 'pl' AND ht.name = 'Dekoder 4K Hybrid' LIMIT 1),
+                cs.id, 'RENTED', 'STB4K-HYB-002'
+            FROM client_services cs
+            JOIN service_translations st ON st.service_id = cs.service_id AND st.language_code = 'pl'
+            JOIN clients c ON c.id = cs.client_id
+            WHERE c.client_number = 'C001' AND st.name = 'Komfort Plus 4K' AND cs.status = 'Active'
+            LIMIT 1;
+
+            -- Telefon VoIP → C001's VoIP service
+            INSERT INTO client_hardware (hardware_id, client_service_id, ownership, serial_number)
+            SELECT
+                (SELECT h.id FROM hardware h JOIN hardware_translations ht ON ht.hardware_id = h.id
+                 WHERE ht.language_code = 'pl' AND ht.name = 'Telefon VoIP' LIMIT 1),
+                cs.id, 'OWNED', 'VOIP-PH-003'
+            FROM client_services cs
+            JOIN service_translations st ON st.service_id = cs.service_id AND st.language_code = 'pl'
+            JOIN clients c ON c.id = cs.client_id
+            WHERE c.client_number = 'C001' AND st.name = 'Telefon VoIP'
+            LIMIT 1;
+
+            -- Karta SIM → 1000GB on Długa
+            INSERT INTO client_hardware (hardware_id, client_service_id, ownership, serial_number)
+            SELECT
+                (SELECT h.id FROM hardware h JOIN hardware_translations ht ON ht.hardware_id = h.id
+                 WHERE ht.language_code = 'pl' AND ht.name = 'Karta SIM' LIMIT 1),
+                cs.id, 'OWNED', 'SIM-1000GB-004'
+            FROM client_services cs
+            JOIN service_translations st ON st.service_id = cs.service_id AND st.language_code = 'pl'
+            JOIN clients c ON c.id = cs.client_id
+            JOIN client_addresses ca ON ca.id = cs.address_id
+            WHERE c.client_number = 'C001' AND st.name = '1000GB' AND ca.address LIKE '%Długa%'
+            LIMIT 1;
+
+            -- Modem światłowodowy → C001's fiber service
+            INSERT INTO client_hardware (hardware_id, client_service_id, ownership, serial_number)
+            SELECT
+                (SELECT h.id FROM hardware h JOIN hardware_translations ht ON ht.hardware_id = h.id
+                 WHERE ht.language_code = 'pl' AND ht.name = 'Modem światłowodowy' LIMIT 1),
+                cs.id, 'RENTED', 'FIBER-MOD-005'
+            FROM client_services cs
+            JOIN service_translations st ON st.service_id = cs.service_id AND st.language_code = 'pl'
+            JOIN clients c ON c.id = cs.client_id
+            WHERE c.client_number = 'C001' AND st.name = 'Internet 100 Mb/s'
+            LIMIT 1;
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-package-subscriptions" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM client_package_subscriptions</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- C001 is subscribed to the base "Podstawowy" package and the "Sport+" add-on for Komfort Plus 4K
+            INSERT INTO client_package_subscriptions (client_number, tv_channel_package_id, service_id)
+            SELECT 'C001', tcp.id, tcp.service_id
+            FROM tv_channel_packages tcp
+            JOIN service_translations st ON st.service_id = tcp.service_id AND st.language_code = 'pl'
+            WHERE st.name = 'Komfort Plus 4K' AND tcp.name IN ('Podstawowy', 'Sport+');
+
+            -- And the base package for "Telewizja standard"
+            INSERT INTO client_package_subscriptions (client_number, tv_channel_package_id, service_id)
+            SELECT 'C001', tcp.id, tcp.service_id
+            FROM tv_channel_packages tcp
+            JOIN service_translations st ON st.service_id = tcp.service_id AND st.language_code = 'pl'
+            WHERE st.name = 'Telewizja standard' AND tcp.name = 'Pakiet podstawowy';
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-paid-invoices-and-payments" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM payments</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- Ensure invoices from previous changeset are paid
+            UPDATE invoices SET status = 'PAID' WHERE invoice_number IN ('FV/2023/01/10001/23', 'FV/2024/01/10002/23');
+
+            -- Matching payments
+            INSERT INTO payments (amount, payment_date, payment_method, transaction_id, title, client_id, invoice_id)
+            SELECT i.total_amount, i.due_date - INTERVAL '2 days', 'CARD',
+                   'TX-' || i.invoice_number,
+                   'Płatność za fakturę ' || i.invoice_number,
+                   i.client_id, i.id
+            FROM invoices i
+            WHERE i.invoice_number IN ('FV/2023/01/10001/23', 'FV/2024/01/10002/23');
+
+            -- One standalone top-up payment (no linked invoice)
+            INSERT INTO payments (amount, payment_date, payment_method, transaction_id, title, client_id, invoice_id)
+            VALUES (
+                50.00,
+                CURRENT_TIMESTAMP - INTERVAL '10 days',
+                'BLIK',
+                'TX-TOPUP-001',
+                'Doładowanie konta',
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                NULL
+            );
+
+            -- A partial refund on the oldest paid invoice (service credit)
+            INSERT INTO refunds (amount, refund_date, status, reason, payment_id)
+            SELECT 45.50,
+                   p.payment_date + INTERVAL '5 days',
+                   'COMPLETED',
+                   'Zwrot za przerwę w dostępie do usługi',
+                   p.id
+            FROM payments p
+            JOIN invoices i ON i.id = p.invoice_id
+            WHERE i.invoice_number = 'FV/2023/01/10001/23';
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offer-orders" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM offer_orders</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- C001 ordered 3 different offer variants over time
+            INSERT INTO offer_orders (client_id, offer_variant_id, ordered_at)
+            SELECT c.id, ov.id, NOW() - INTERVAL '180 days'
+            FROM clients c, offer_variants ov JOIN offers o ON o.id = ov.offer_id
+            WHERE c.client_number = 'C001' AND o.title = 'Internet 1Gb/s' AND ov.name = '1 Gb/s 24M'
+            LIMIT 1;
+
+            INSERT INTO offer_orders (client_id, offer_variant_id, ordered_at)
+            SELECT c.id, ov.id, NOW() - INTERVAL '90 days'
+            FROM clients c, offer_variants ov JOIN offers o ON o.id = ov.offer_id
+            WHERE c.client_number = 'C001' AND o.title = 'Pakiet TV Komfort 4K' AND ov.name = 'Komfort 4K 24M'
+            LIMIT 1;
+
+            INSERT INTO offer_orders (client_id, offer_variant_id, ordered_at)
+            SELECT c.id, ov.id, NOW() - INTERVAL '14 days'
+            FROM clients c, offer_variants ov JOIN offers o ON o.id = ov.offer_id
+            WHERE c.client_number = 'C001' AND o.title = 'Router Wi-Fi 6' AND ov.name = 'Router Wi-Fi 6 jednorazowo'
+            LIMIT 1;
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-hardware-replace-icon-paths" author="elcaro" context="dev">
+        <validCheckSum>ANY</validCheckSum>
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (SELECT 1 FROM hardware WHERE image_path LIKE 'https://api.iconify.design/%') THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            UPDATE hardware h SET image_path = m.new_path
+            FROM (
+                SELECT ht.hardware_id, m.new_path
+                FROM hardware_translations ht
+                JOIN (VALUES
+                    ('Router Wi-Fi 6',       'http://localhost:8080/hardware/router-wifi-6.jpg'),
+                    ('Router Wi-Fi 7',       'http://localhost:8080/hardware/router-wifi-7.jpg'),
+                    ('Modem światłowodowy',  'http://localhost:8080/hardware/fiber-modem.jpg'),
+                    ('Dekoder 4K',           'http://localhost:8080/hardware/decoder-4k.jpg'),
+                    ('Dekoder 4K Hybrid',    'http://localhost:8080/hardware/decoder-4k-hybrid.jpg'),
+                    ('Telefon VoIP',         'http://localhost:8080/hardware/voip-phone.jpg'),
+                    ('Karta SIM',            'http://localhost:8080/hardware/sim-card.jpg')
+                ) AS m(name, new_path) ON m.name = ht.name
+                WHERE ht.language_code = 'pl'
+            ) AS m
+            WHERE m.hardware_id = h.id
+              AND h.image_path LIKE 'https://api.iconify.design/%';
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-hardware-absolute-image-urls" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (SELECT 1 FROM hardware WHERE image_path LIKE '/hardware/%') THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE hardware SET image_path = 'http://localhost:8080' || image_path
+            WHERE image_path LIKE '/hardware/%';
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-fill-missing-french-translations" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN
+                    EXISTS (SELECT 1 FROM document_translations en
+                            WHERE en.language_code = 'en'
+                              AND NOT EXISTS (SELECT 1 FROM document_translations fr
+                                              WHERE fr.language_code = 'fr' AND fr.document_id = en.document_id))
+                    OR EXISTS (SELECT 1 FROM service_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM service_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.service_id = en.service_id))
+                    OR EXISTS (SELECT 1 FROM tv_channel_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM tv_channel_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.tv_channel_id = en.tv_channel_id))
+                    OR EXISTS (SELECT 1 FROM tv_channel_package_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM tv_channel_package_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.tv_channel_package_id = en.tv_channel_package_id))
+                    OR EXISTS (SELECT 1 FROM consent_type_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM consent_type_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.consent_type_id = en.consent_type_id))
+                    OR EXISTS (SELECT 1 FROM notification_type_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM notification_type_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.notification_type_id = en.notification_type_id))
+                    OR EXISTS (SELECT 1 FROM hardware_translations en
+                               WHERE en.language_code = 'en'
+                                 AND NOT EXISTS (SELECT 1 FROM hardware_translations fr
+                                                 WHERE fr.language_code = 'fr' AND fr.hardware_id = en.hardware_id))
+                THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            INSERT INTO document_translations (language_code, document_id, name, text)
+            SELECT 'fr', en.document_id, en.name, en.text
+            FROM document_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM document_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.document_id = en.document_id);
+
+            INSERT INTO service_translations (service_id, language_code, name, info)
+            SELECT en.service_id, 'fr', en.name, en.info
+            FROM service_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM service_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.service_id = en.service_id);
+
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name)
+            SELECT 'fr', en.tv_channel_id, en.name
+            FROM tv_channel_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM tv_channel_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.tv_channel_id = en.tv_channel_id);
+
+            INSERT INTO tv_channel_package_translations (language_code, tv_channel_package_id, name)
+            SELECT 'fr', en.tv_channel_package_id, en.name
+            FROM tv_channel_package_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM tv_channel_package_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.tv_channel_package_id = en.tv_channel_package_id);
+
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, description)
+            SELECT 'fr', en.consent_type_id, en.code, en.description
+            FROM consent_type_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM consent_type_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.consent_type_id = en.consent_type_id);
+
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name)
+            SELECT 'fr', en.notification_type_id, en.name
+            FROM notification_type_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM notification_type_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.notification_type_id = en.notification_type_id);
+
+            INSERT INTO hardware_translations (language_code, hardware_id, name)
+            SELECT 'fr', en.hardware_id, en.name
+            FROM hardware_translations en
+            WHERE en.language_code = 'en'
+              AND NOT EXISTS (SELECT 1 FROM hardware_translations fr
+                              WHERE fr.language_code = 'fr' AND fr.hardware_id = en.hardware_id);
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-hardware-temp-shared-image" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM hardware WHERE image_path != 'http://localhost:8080/hardware/router-wifi-6.jpg'
+                ) THEN 1 ELSE 0 END
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE hardware SET image_path = 'http://localhost:8080/hardware/router-wifi-6.jpg';
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-global-message-states" author="elcaro" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM client_global_message_states</sqlCheck>
+        </preConditions>
+        <sql splitStatements="false"><![CDATA[
+            -- C001 has read the first 3 global messages, the 4th is read+deleted, the rest stay unread
+            INSERT INTO client_global_message_states (client_id, global_message_id, is_read, read_at, is_deleted)
+            SELECT
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                gm.id,
+                true,
+                NOW() - INTERVAL '2 days',
+                false
+            FROM global_messages gm
+            WHERE gm.title IN ('Pierwsza wiadomość', 'Druga wiadomość', 'Trzecia wiadomość');
+
+            INSERT INTO client_global_message_states (client_id, global_message_id, is_read, read_at, is_deleted)
+            SELECT
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                gm.id,
+                true,
+                NOW() - INTERVAL '5 days',
+                true
+            FROM global_messages gm
+            WHERE gm.title = 'Czwarta wiadomość';
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-offers-update-featured" author="elcaro" context="dev">
+        <sql>
+            -- Ensure at least 4 featured offers
+            UPDATE offers SET is_featured = true WHERE id IN (1, 2, 3, 4);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

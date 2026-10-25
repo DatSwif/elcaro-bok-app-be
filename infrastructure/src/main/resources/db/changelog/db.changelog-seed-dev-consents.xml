@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="seed-new-consent-types" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO consent_types DEFAULT VALUES;
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, title, description)
+            VALUES ('pl', currval('consent_types_id_seq'), 'PHONE_CONTACT', 'Kontakt telefoniczny', 'Zgoda na kontakt telefoniczny');
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, title, description)
+            VALUES ('en', currval('consent_types_id_seq'), 'PHONE_CONTACT', 'Phone contact', 'Consent for phone contact');
+
+            INSERT INTO consent_types DEFAULT VALUES;
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, title, description)
+            VALUES ('pl', currval('consent_types_id_seq'), 'EMAIL_CONTACT', 'Kontakt email', 'Zgoda na kontakt mailowy');
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, title, description)
+            VALUES ('en', currval('consent_types_id_seq'), 'EMAIL_CONTACT', 'Email contact', 'Consent for email contact');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

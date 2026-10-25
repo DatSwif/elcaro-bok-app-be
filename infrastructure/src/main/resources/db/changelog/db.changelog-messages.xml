@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="messages-1-global" author="elcaro">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="global_messages"/>
+            </not>
+        </preConditions>
+        <createTable tableName="global_messages">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_global_messages"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="messages-2-personal" author="elcaro">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="personal_messages"/>
+            </not>
+        </preConditions>
+        <createTable tableName="personal_messages">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_personal_messages"/>
+            </column>
+            <column name="title" type="VARCHAR(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="level" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_read" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="read_at" type="TIMESTAMPTZ"/>
+            <column name="created_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="personal_messages" baseColumnNames="client_id"
+                                 constraintName="fk_personal_messages_on_client"
+                                 referencedTableName="clients" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="messages-3-global-states" author="elcaro">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="client_global_message_states"/>
+            </not>
+        </preConditions>
+        <createTable tableName="client_global_message_states">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_client_global_message_states"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="global_message_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_read" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="read_at" type="TIMESTAMPTZ"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="client_global_message_states"
+                             columnNames="client_id, global_message_id"
+                             constraintName="uc_client_global_message_states"/>
+        <addForeignKeyConstraint baseTableName="client_global_message_states" baseColumnNames="client_id"
+                                 constraintName="fk_client_global_message_states_on_client"
+                                 referencedTableName="clients" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="client_global_message_states" baseColumnNames="global_message_id"
+                                 constraintName="fk_client_global_message_states_on_global_message"
+                                 referencedTableName="global_messages" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <!-- 1. Create translation tables -->
+
+    <changeSet id="translations-1" author="elcaro">
+        <createTable tableName="document_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_document_translations"/>
+            </column>
+            <column name="document_id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_document_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="document_translations" baseColumnNames="document_id"
+                                 constraintName="fk_document_translations_document"
+                                 referencedTableName="documents" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-2" author="elcaro">
+        <createTable tableName="service_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_service_translations"/>
+            </column>
+            <column name="service_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_service_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(30)"/>
+            <column name="info" type="TEXT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="service_translations" baseColumnNames="service_id"
+                                 constraintName="fk_service_translations_service"
+                                 referencedTableName="services" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-3" author="elcaro">
+        <createTable tableName="consent_type_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_consent_type_translations"/>
+            </column>
+            <column name="consent_type_id" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_consent_type_translations"/>
+            </column>
+            <column name="code" type="VARCHAR(50)"/>
+            <column name="description" type="TEXT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="consent_type_translations" baseColumnNames="consent_type_id"
+                                 constraintName="fk_consent_type_translations_consent_type"
+                                 referencedTableName="consent_types" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-4" author="elcaro">
+        <createTable tableName="notification_type_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_notification_type_translations"/>
+            </column>
+            <column name="notification_type_id" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_notification_type_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(100)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="notification_type_translations" baseColumnNames="notification_type_id"
+                                 constraintName="fk_notification_type_translations_notification_type"
+                                 referencedTableName="notification_types" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-5" author="elcaro">
+        <createTable tableName="hardware_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_hardware_translations"/>
+            </column>
+            <column name="hardware_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_hardware_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="hardware_translations" baseColumnNames="hardware_id"
+                                 constraintName="fk_hardware_translations_hardware"
+                                 referencedTableName="hardware" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-6" author="elcaro">
+        <createTable tableName="tv_channel_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_tv_channel_translations"/>
+            </column>
+            <column name="tv_channel_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_tv_channel_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tv_channel_translations" baseColumnNames="tv_channel_id"
+                                 constraintName="fk_tv_channel_translations_tv_channel"
+                                 referencedTableName="tv_channels" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="translations-7" author="elcaro">
+        <createTable tableName="tv_service_offer_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_tv_service_offer_translations"/>
+            </column>
+            <column name="tv_service_offer_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_tv_service_offer_translations"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tv_service_offer_translations" baseColumnNames="tv_service_offer_id"
+                                 constraintName="fk_tv_service_offer_translations_tv_service_offer"
+                                 referencedTableName="tv_service_offers" referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- 2. Migrate existing data -->
+
+    <changeSet id="translations-migrate-documents" author="elcaro">
+        <sql>
+            INSERT INTO document_translations (language_code, document_id, name, text)
+            SELECT
+                elem->>'lang',
+                d.id,
+                elem->'body'->>'name',
+                elem->'body'->>'text'
+            FROM documents d,
+                 jsonb_array_elements(d.lang_versions) AS elem
+            WHERE d.lang_versions IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-services" author="elcaro">
+        <sql>
+            INSERT INTO service_translations (language_code, service_id, name, info)
+            SELECT 'en', id, name, info FROM services WHERE name IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-consent-types" author="elcaro">
+        <sql>
+            INSERT INTO consent_type_translations (language_code, consent_type_id, code, description)
+            SELECT 'en', id, code, description FROM consent_types WHERE code IS NOT NULL OR description IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-notification-types" author="elcaro">
+        <sql>
+            INSERT INTO notification_type_translations (language_code, notification_type_id, name)
+            SELECT 'en', id, name FROM notification_types WHERE name IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-hardware" author="elcaro">
+        <sql>
+            INSERT INTO hardware_translations (language_code, hardware_id, name)
+            SELECT 'en', id, name FROM hardware;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-tv-channels" author="elcaro">
+        <sql>
+            INSERT INTO tv_channel_translations (language_code, tv_channel_id, name)
+            SELECT 'en', id, name FROM tv_channels;
+        </sql>
+    </changeSet>
+
+    <changeSet id="translations-migrate-tv-service-offers" author="elcaro">
+        <sql>
+            INSERT INTO tv_service_offer_translations (language_code, tv_service_offer_id, name)
+            SELECT 'en', id, name FROM tv_service_offers;
+        </sql>
+    </changeSet>
+
+    <!-- 3. Drop old translatable columns -->
+
+    <changeSet id="translations-drop-documents-langversions" author="elcaro">
+        <dropColumn tableName="documents" columnName="lang_versions"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-services-columns" author="elcaro">
+        <dropColumn tableName="services" columnName="name"/>
+        <dropColumn tableName="services" columnName="info"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-consent-types-columns" author="elcaro">
+        <dropColumn tableName="consent_types" columnName="code"/>
+        <dropColumn tableName="consent_types" columnName="description"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-notification-types-columns" author="elcaro">
+        <dropColumn tableName="notification_types" columnName="name"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-hardware-columns" author="elcaro">
+        <dropColumn tableName="hardware" columnName="name"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-tv-channels-columns" author="elcaro">
+        <dropColumn tableName="tv_channels" columnName="name"/>
+    </changeSet>
+
+    <changeSet id="translations-drop-tv-service-offers-columns" author="elcaro">
+        <dropColumn tableName="tv_service_offers" columnName="name"/>
+    </changeSet>
+
+    <!-- 4. Add title to consent types -->
+    <changeSet id="translations-consent-types-add-title" author="elcaro">
+        <addColumn tableName="consent_type_translations">
+            <column name="title" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="translations-consent-types-backfill-title" author="elcaro">
+        <sql>
+            UPDATE consent_type_translations SET title = 'Zgoda marketingowa' WHERE language_code = 'pl' AND code = 'MARKETING';
+            UPDATE consent_type_translations SET title = 'Marketing consent' WHERE language_code = 'en' AND code = 'MARKETING';
+            UPDATE consent_type_translations SET title = code WHERE title IS NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

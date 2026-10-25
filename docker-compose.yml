@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: elcaro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - elcaro-network
+    # Verifying that the database has started
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d elcaro" ]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/elcaro
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_LIQUIBASE_CONTEXTS: dev
+      APP_DEV_TEST_LOGIN_ENABLED: "true"
+    networks:
+      - elcaro-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  elcaro-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

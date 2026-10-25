@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="seed-dev-figma-messages-update" author="elcaro" context="dev">
+        <sql splitStatements="false"><![CDATA[
+            UPDATE global_message_translations SET title = 'Przypomnienie o aktualizacji danych', content = 'Szanowni Państwo, zwracamy się z uprzejmą prośbą o dokonanie aktualizacji danych osobowych w systemie.' WHERE language_code = 'pl' AND global_message_id = 1;
+            UPDATE global_message_translations SET title = 'Data update reminder', content = 'Dear Sir/Madam, we kindly ask you to update your personal data in the system.' WHERE language_code = 'en' AND global_message_id = 1;
+
+            UPDATE global_message_translations SET title = 'Prace serwisowe', content = 'W dniach 24 i 25 sierpnia w Twojej okolicy będą prowadzone prace serwisowe.' WHERE language_code = 'pl' AND global_message_id = 2;
+            UPDATE global_message_translations SET title = 'Maintenance work', content = 'On August 24 and 25, maintenance work will be carried out in your area.' WHERE language_code = 'en' AND global_message_id = 2;
+
+            UPDATE global_message_translations SET title = 'Zarządzanie subskrypcją', content = 'Możesz w każdej chwili zarządzać swoją subskrypcją w sekcji Ustawienia.' WHERE language_code = 'pl' AND global_message_id = 3;
+            UPDATE global_message_translations SET title = 'Subscription management', content = 'You can manage your subscription at any time in the Settings section.' WHERE language_code = 'en' AND global_message_id = 3;
+
+            UPDATE global_message_translations SET title = 'Nowe funkcje w aplikacji', content = 'Z radością informujemy, że wkrótce w aplikacji pojawią się nowe funkcje.' WHERE language_code = 'pl' AND global_message_id = 4;
+            UPDATE global_message_translations SET title = 'New app features', content = 'We are pleased to inform you that new features will soon appear in the app.' WHERE language_code = 'en' AND global_message_id = 4;
+
+            UPDATE global_message_translations SET title = 'Bezpieczeństwo konta', content = 'Zalecamy regularną zmianę hasła oraz włączenie dwuetapowej weryfikacji.' WHERE language_code = 'pl' AND global_message_id = 5;
+            UPDATE global_message_translations SET title = 'Account security', content = 'We recommend changing your password regularly and enabling two-step verification.' WHERE language_code = 'en' AND global_message_id = 5;
+
+            UPDATE global_message_translations SET title = 'Szybka pomoc', content = 'Jeśli potrzebujesz pomocy, nasz zespół wsparcia jest dostępny 24/7.' WHERE language_code = 'pl' AND global_message_id = 6;
+            UPDATE global_message_translations SET title = 'Quick help', content = 'If you need help, our support team is available 24/7.' WHERE language_code = 'en' AND global_message_id = 6;
+
+            UPDATE global_message_translations SET title = 'Aktualizacja polityki prywatności', content = 'Informujemy o zmianach w polityce prywatności. Zachęcamy do zapoznania się z nowym dokumentem.' WHERE language_code = 'pl' AND global_message_id = 7;
+            UPDATE global_message_translations SET title = 'Privacy policy update', content = 'We would like to inform you about changes to our privacy policy. We encourage you to read the new document.' WHERE language_code = 'en' AND global_message_id = 7;
+
+            DELETE FROM personal_messages;
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, created_at, payload)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'MAINTENANCE_DATES', 1, false, NOW(), '{"startDate": "11.06.2026r", "endDate": "13.06.2026r"}');
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, created_at, payload)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'SYSTEM_OUTAGE', 2, false, NOW(), '{}');
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, created_at, payload)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'SYSTEM_OUTAGE', 2, false, NOW(), '{}');
+
+            INSERT INTO personal_messages (client_id, title, level, is_read, created_at, payload)
+            VALUES ((SELECT id FROM clients WHERE client_number = 'C001'), 'NEW_INVOICE', 1, false, NOW(), '{"invoiceNumber": "FV/2026/05", "amount": "126.50 PLN"}');
+            ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

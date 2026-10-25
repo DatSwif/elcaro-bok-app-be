@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="payments-1-invoices" author="elcaro">
+        <createTable tableName="invoices">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_invoices"/>
+            </column>
+            <column name="invoice_number" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uc_invoices_invoice_number"/>
+            </column>
+            <column name="issue_date" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="due_date" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_start" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_end" type="TIMESTAMPTZ"/>
+            <column name="total_amount" type="DECIMAL(10, 2)" defaultValueNumeric="0.00">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="UNPAID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_id" type="VARCHAR(255)"/>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="invoices" baseColumnNames="client_id"
+                                 constraintName="fk_invoices_on_client"
+                                 referencedTableName="clients" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="payments-2-payments" author="elcaro">
+        <createTable tableName="payments">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_payments"/>
+            </column>
+            <column name="amount" type="DECIMAL(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_date" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_method" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transaction_id" type="VARCHAR(100)"/>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invoice_id" type="BIGINT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="payments" baseColumnNames="client_id"
+                                 constraintName="fk_payments_on_client"
+                                 referencedTableName="clients" referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="payments" baseColumnNames="invoice_id"
+                                 constraintName="fk_payments_on_invoice"
+                                 referencedTableName="invoices" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="payments-3-refunds" author="elcaro">
+        <createTable tableName="refunds">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_refunds"/>
+            </column>
+            <column name="amount" type="DECIMAL(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="refund_date" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="COMPLETED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reason" type="VARCHAR(255)"/>
+            <column name="payment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="refunds" baseColumnNames="payment_id"
+                                 constraintName="fk_refunds_on_payment"
+                                 referencedTableName="payments" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

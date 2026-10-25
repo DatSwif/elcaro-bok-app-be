@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="dashboard-translations-1" author="elcaro">
+        <createTable tableName="global_message_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_global_message_translations"/>
+            </column>
+            <column name="global_message_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_global_message_translations"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="global_message_translations" baseColumnNames="global_message_id"
+                                 constraintName="fk_global_message_translations_global_message"
+                                 referencedTableName="global_messages" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="dashboard-translations-2" author="elcaro">
+        <createTable tableName="offer_translations">
+            <column name="language_code" type="VARCHAR(10)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_offer_translations"/>
+            </column>
+            <column name="offer_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_offer_translations"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subtitle" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="offer_translations" baseColumnNames="offer_id"
+                                 constraintName="fk_offer_translations_offer"
+                                 referencedTableName="offers" referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="dashboard-translations-migrate-global-messages" author="elcaro">
+        <sql>
+            INSERT INTO global_message_translations (language_code, global_message_id, title, content)
+            SELECT 'pl', id, title, content FROM global_messages;
+        </sql>
+    </changeSet>
+
+    <changeSet id="dashboard-translations-migrate-offers" author="elcaro">
+        <sql>
+            INSERT INTO offer_translations (language_code, offer_id, title, subtitle)
+            SELECT 'pl', id, title, subtitle FROM offers;
+        </sql>
+    </changeSet>
+
+    <changeSet id="dashboard-translations-drop-global-messages-columns" author="elcaro">
+        <dropColumn tableName="global_messages" columnName="title"/>
+        <dropColumn tableName="global_messages" columnName="content"/>
+    </changeSet>
+
+    <changeSet id="dashboard-translations-drop-offers-columns" author="elcaro">
+        <dropColumn tableName="offers" columnName="title"/>
+        <dropColumn tableName="offers" columnName="subtitle"/>
+    </changeSet>
+
+    <changeSet id="seed-dev-english-dashboard-translations" author="elcaro" context="dev">
+        <sql splitStatements="false"><![CDATA[
+            -- Global Messages English
+            INSERT INTO global_message_translations (language_code, global_message_id, title, content)
+            SELECT 'en', gm.global_message_id,
+                   CASE gm.title
+                       WHEN 'Pierwsza wiadomość' THEN 'First message'
+                       WHEN 'Druga wiadomość' THEN 'Second message'
+                       WHEN 'Trzecia wiadomość' THEN 'Third message'
+                       WHEN 'Czwarta wiadomość' THEN 'Fourth message'
+                       WHEN 'Piąta wiadomość' THEN 'Fifth message'
+                       WHEN 'Szósta wiadomość' THEN 'Sixth message'
+                       WHEN 'Siódma wiadomość' THEN 'Seventh message'
+                       ELSE gm.title
+                   END,
+                   CASE gm.content
+                       WHEN 'To jest treść pierwszej wiadomości.' THEN 'This is the content of the first message.'
+                       WHEN 'To jest treść drugiej wiadomości.' THEN 'This is the content of the second message.'
+                       WHEN 'To jest treść trzeciej wiadomości.' THEN 'This is the content of the third message.'
+                       WHEN 'To jest treść czwartej wiadomości.' THEN 'This is the content of the fourth message.'
+                       WHEN 'To jest treść piątej wiadomości.' THEN 'This is the content of the fifth message.'
+                       WHEN 'To jest treść szóstej wiadomości.' THEN 'This is the content of the sixth message.'
+                       WHEN 'To jest treść siódmej wiadomości.' THEN 'This is the content of the seventh message.'
+                       ELSE gm.content
+                   END
+            FROM global_message_translations gm
+            WHERE gm.language_code = 'pl';
+
+            -- Offers English
+            INSERT INTO offer_translations (language_code, offer_id, title, subtitle)
+            SELECT 'en', ot.offer_id,
+                   CASE ot.title
+                       WHEN 'Internet 1Gb/s' THEN 'Internet 1Gbps'
+                       WHEN 'Pakiet TV Komfort 4K' THEN 'TV Comfort 4K Package'
+                       WHEN 'Internet + TV' THEN 'Internet + TV'
+                       WHEN 'Mobile No Limit' THEN 'Mobile No Limit'
+                       WHEN 'Router Wi-Fi 6' THEN 'Wi-Fi 6 Router'
+                       WHEN 'Internet 2Gb/s Premium' THEN 'Internet 2Gbps Premium'
+                       WHEN 'Pakiet TV Sport' THEN 'TV Sport Package'
+                       WHEN 'Internet + TV + Mobile' THEN 'Internet + TV + Mobile'
+                       WHEN 'Mobile Student' THEN 'Student Mobile'
+                       WHEN 'Dekoder 4K Hybrid' THEN '4K Hybrid Decoder'
+                       ELSE ot.title
+                   END,
+                   CASE ot.subtitle
+                       WHEN 'Światłowodowy szybki internet do domu' THEN 'Fast fiber internet for home'
+                       WHEN 'Ponad 150 kanałów w jakości 4K' THEN 'Over 150 channels in 4K quality'
+                       WHEN 'Najszybszy światłowód i bogata oferta TV w jednym pakiecie' THEN 'The fastest fiber and a rich TV offer in one package'
+                       WHEN 'Nielimitowane rozmowy, SMS oraz 100GB internetu' THEN 'Unlimited calls, SMS and 100GB of internet'
+                       WHEN 'Szybki router do gospodarstwa domowego' THEN 'Fast router for the household'
+                       WHEN 'Najszybszy światłowód dla wymagających' THEN 'The fastest fiber for the demanding'
+                       WHEN 'Wszystkie kanały sportowe w jednej cenie' THEN 'All sports channels in one price'
+                       WHEN 'Kompletny pakiet domowy z usługą mobilną' THEN 'Complete home package with mobile service'
+                       WHEN 'Specjalna oferta dla uczniów i studentów' THEN 'Special offer for students'
+                       WHEN 'Dekoder z dostępem do aplikacji streamingowych' THEN 'Decoder with access to streaming applications'
+                       ELSE ot.subtitle
+                   END
+            FROM offer_translations ot
+            WHERE ot.language_code = 'pl';
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

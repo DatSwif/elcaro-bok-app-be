@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="update-client-name" author="elcaro" context="dev">
+        <sql>
+            UPDATE clients
+            SET client_name = 'Zbigniew', last_name = 'Kuźniecowsk', organization_name = 'adadada'
+            WHERE client_number = 'C001';
+
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'client1@example.cadada',
+                NOW()
+            );
+
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                'client2@example.cadada',
+                NOW()
+            );
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                '+48223456789',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C001'),
+                '+48888888888',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-C002" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO clients (client_number, client_name, last_name, organization_name, language_code, failed_login_count)
+            VALUES ('C002', 'Anna', 'Nowak', NULL, 'pl', 0);
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C002'),
+                '+48500600700',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C002'),
+                'anna.nowak@example.com',
+                NOW()
+            );
+
+            INSERT INTO client_addresses (client_id, address, contract_active_from, contract_active_until) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C002'),
+                'ul. Krakowska 5/12, Kraków',
+                '2022-03-01',
+                NULL
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-C003-overpayment" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO clients (client_number, client_name, last_name, organization_name, language_code, failed_login_count)
+            VALUES ('C003', 'Piotr', 'Kowalski', 'Kowalski Sp. z o.o.', 'pl', 0);
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C003'),
+                '+48600700800',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C003'),
+                'piotr.kowalski@example.com',
+                NOW()
+            );
+
+            INSERT INTO client_addresses (client_id, address, contract_active_from, contract_active_until) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C003'),
+                'ul. Długa 22, Gdańsk',
+                '2020-06-15',
+                NULL
+            );
+
+            -- Overpayment: standalone top-up payment with invoice_id = NULL,
+            -- same pattern as the "Doładowanie konta" entry for C001.
+            INSERT INTO payments (amount, payment_date, payment_method, transaction_id, title, client_id, invoice_id)
+            VALUES (
+                120.00,
+                CURRENT_TIMESTAMP - INTERVAL '7 days',
+                'BLIK',
+                'TX-TOPUP-C003-001',
+                'Doładowanie konta',
+                (SELECT id FROM clients WHERE client_number = 'C003'),
+                NULL
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="seed-dev-client-C004-twilio" author="elcaro" context="dev">
+        <sql>
+            INSERT INTO clients (client_number, client_name, last_name, organization_name, language_code, failed_login_count)
+            VALUES ('C004', 'Test', 'Twilio', NULL, 'pl', 0);
+
+            INSERT INTO client_phones (client_id, phone, expires_at, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C004'),
+                '+48662455122',
+                '2099-12-31T00:00:00Z',
+                NOW()
+            );
+
+            INSERT INTO client_emails (client_id, email, created_at) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C004'),
+                'test.twilio@example.com',
+                NOW()
+            );
+
+            INSERT INTO client_addresses (client_id, address, contract_active_from, contract_active_until) VALUES (
+                (SELECT id FROM clients WHERE client_number = 'C004'),
+                'ul. Testowa 1, Warszawa',
+                '2023-01-01',
+                NULL
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
